@@ -54,6 +54,7 @@ namespace sv {
 
     //(psi,theta,phi)
     inline cv::Vec3f EulerAngles() const ;
+    inline cv::Vec3f AngleAxis() const ;
     inline friend std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
     inline friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator+(const Quaternion &a, const Quaternion &b);
@@ -67,7 +68,7 @@ namespace sv {
   };
 
   std::ostream &operator<<(std::ostream &stream, const Quaternion &a){
-    stream << "[" << a.X() << ", " << a.X() << ", " << a.Y() << ", " << a.Z() << "]\n";
+    stream << a.X() << " " << a.X() << " " << a.Y() << " " << a.Z();
     return stream;
   }
 
@@ -85,11 +86,25 @@ namespace sv {
   }
 
   cv::Vec3f Quaternion::EulerAngles() const {
-    const float phi = atan2( 2*(W()*X() + Y()*Z()), 1-2*(X()*X()+Y()*Y()) );
-    const float theta = asin(2*(W()*Y() - Z()*X()));
-    const float psi = atan2( 2*(W()*Z() + X()*Y()), 1-2*(Y()*Y()+Z()*Z()) );
+    const float phi = (float)atan2( 2*(W()*X() + Y()*Z()), 1-2*(X()*X()+Y()*Y()) );
+    const float theta = (float)asin(2*(W()*Y() - Z()*X()));
+    const float psi = (float)atan2( 2*(W()*Z() + X()*Y()), 1-2*(Y()*Y()+Z()*Z()) );
     return cv::Vec3f(phi,theta,psi);
+    //return cv::Vec3f(theta,psi,phi)
   }
+
+  cv::Vec3f Quaternion::AngleAxis() const {
+
+    //const float theta = 2 * acos( W() );
+    const float l2_norm = sqrt( (X()*X()) + (Y()*Y()) + (Z()*Z()) );
+    const float theta = 2 * atan2( (double)l2_norm , W() );
+    if(theta == 0.0f) return cv::Vec3f(0,0,0);
+    const cv::Vec3f omega( X()/l2_norm, Y()/l2_norm, Z()/l2_norm );
+
+    return omega;
+
+  }
+
 
   Quaternion Quaternion::Inverse() const {
     return Quaternion(boost::math::conj<double>(internal_quaternion_));
