@@ -68,7 +68,7 @@ namespace sv {
   };
 
   std::ostream &operator<<(std::ostream &stream, const Quaternion &a){
-    stream << a.X() << " " << a.X() << " " << a.Y() << " " << a.Z();
+    stream << a.W() << " " << a.X() << " " << a.Y() << " " << a.Z();
     return stream;
   }
 
@@ -144,22 +144,31 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
   cv::Vec3f from_n,to_n;
   cv::normalize(from,from_n);
   cv::normalize(to,to_n);
-      
+    
   float d = from_n.dot(to_n);
-
   if(d >= 1.0){
-    return boost::math::quaternion<double>();
+    //return identity quaternion
+    return boost::math::quaternion<double>(1,0,0,0);
   }
 
-  //check if d \approx = 0
+  if(d <= -1.0){
+    //for cases when the vectors point in opposite directions
+    //see http://irrlicht.sourceforge.net/docu/quaternion_8h_source.html line 658
+    cv::Vec3f ax(1,0,0);
+    ax = ax.cross(from_n);
+    if(ax.dot(ax) == 0){
+      ax = cv::Vec3f(0,1,0);
+      ax = ax.cross(from_n);
+    }
+    Quaternion qr(0,ax);
+    return qr.Normalize();
+  }
 
   float s = (float)sqrt( (1+d)*2 );
   float inv_s = 1.0f/s;
 
   cv::Vec3f axis = from_n.cross(to_n);
-
   Quaternion q( s*0.5f, cv::Vec3f(axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
-
   return q.Normalize();
 
 }
@@ -186,7 +195,7 @@ cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {
 
   boost::math::quaternion<double> rotated = (internal_quaternion_ * vec_quat) * boost::math::conj<double>(internal_quaternion_);
 
-  return cv::Vec3f((float)rotated.R_component_2(),(float)rotated.R_component_3(),(float)rotated.R_component_3());
+  return cv::Vec3f((float)rotated.R_component_2(),(float)rotated.R_component_3(),(float)rotated.R_component_4());
 
 }
 
