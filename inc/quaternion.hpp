@@ -43,6 +43,7 @@ namespace sv {
     Quaternion(const boost::math::quaternion<double> &x):internal_quaternion_(x) {}
     inline Quaternion(const double angle, const cv::Vec3f &axis);
     inline explicit Quaternion(const cv::Vec3f &euler_angles);
+    inline explicit Quaternion(const cv::Mat &rotation_matrix);
     inline static Quaternion FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to);
     inline cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
     inline Quaternion Normalize() const ;
@@ -83,6 +84,17 @@ namespace sv {
     const float q4 = (cos(half_phi)*cos(half_theta)*sin(half_psi)) - (sin(half_phi)*sin(half_theta)*cos(half_psi));
     
     internal_quaternion_ = boost::math::quaternion<double>(q1,q2,q3,q4);
+  }
+
+  Quaternion::Quaternion(const cv::Mat &rotation_matrix) {
+    if (rotation_matrix.size() != cv::Size(3,3) && rotation_matrix.type() != CV_64FC1) throw(std::runtime_error("Error, rotation matrix used to construct quaternion should be 3x3 double matrix!\n"));
+    double w = sqrt( 1.0 + rotation_matrix.at<double>(0,0) + rotation_matrix.at<double>(1,1) + rotation_matrix.at<double>(2,2))/2.0;
+    double w4 = 4.0*w;
+    double x = (rotation_matrix.at<double>(2,1) - rotation_matrix.at<double>(1,2))/w4;
+    double y = (rotation_matrix.at<double>(0,2) - rotation_matrix.at<double>(2,0))/w4;
+    double z = (rotation_matrix.at<double>(1,0) - rotation_matrix.at<double>(0,1))/w4;
+    internal_quaternion_ = boost::math::quaternion<double>(w,x,y,z);
+
   }
 
   cv::Vec3f Quaternion::EulerAngles() const {
