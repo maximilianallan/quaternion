@@ -45,7 +45,8 @@ namespace sv {
     inline explicit Quaternion(const cv::Vec3f &euler_angles);
     inline explicit Quaternion(const cv::Mat &rotation_matrix);
     inline static Quaternion FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to);
-    inline cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
+    
+    
     inline Quaternion Normalize() const ;
     inline Quaternion Inverse() const;
     inline double X() const;
@@ -56,10 +57,15 @@ namespace sv {
     //(psi,theta,phi)
     inline cv::Vec3f EulerAngles() const ;
     inline cv::Vec3f AngleAxis() const ;
+    inline cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
+    inline double AngularDistanceToQuaternion(const Quaternion &other);
+    
     inline friend std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
     inline friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator+(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator-(const Quaternion &a, const Quaternion &b);
+    inline friend bool operator==(const Quaternion &a, const Quaternion &b);
+    inline friend bool operator!=(const Quaternion &a, const Quaternion &b);
 
   protected:
 
@@ -113,7 +119,7 @@ namespace sv {
     if(theta == 0.0f) return cv::Vec3f(0,0,0);
     const cv::Vec3f omega( X()/l2_norm, Y()/l2_norm, Z()/l2_norm );
 
-    return omega;
+    return theta * omega;
 
   }
 
@@ -129,6 +135,16 @@ namespace sv {
     q.internal_quaternion_ = a.internal_quaternion_ - b.internal_quaternion_;
     return q;
   
+  }
+
+  bool operator==(const Quaternion &a, const Quaternion &b){
+
+    return a.X() == b.X() && a.Y() == b.Y() && a.Z() == b.Z() && a.W() == b.W() ;
+
+  }
+
+   bool operator!=(const Quaternion &a, const Quaternion &b){
+     return !(a==b);
   }
 
 
@@ -148,6 +164,23 @@ namespace sv {
     return q;
   }
   
+
+  double Quaternion::AngularDistanceToQuaternion(const Quaternion &other){
+
+    /* FLOATING POINT ERRORS - this is not feasible
+    if ( this->Normalize() != *this ) {
+      std::cerr << *this << "\n" << this->Normalize() << "\n";
+      throw(std::runtime_error("Error, quaternion caller is not normalized!\n")); 
+    }
+    if ( other.Normalize() != other ) {
+       std::cerr << other << "\n" << other.Normalize() << "\n";
+       throw(std::runtime_error("Error, other quaternion is not normalized!\n"));
+    }*/
+
+    double inner_sq = X()*other.X() + Y()*other.Y() + Z()*other.Z() + W()*other.W();
+    inner_sq = inner_sq * inner_sq;  
+    return acos( 2*(inner_sq) - 1);
+  }
   
 Quaternion::Quaternion(const double angle, const cv::Vec3f &axis):internal_quaternion_(angle,axis[0],axis[1],axis[2]){}
 
