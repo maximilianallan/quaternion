@@ -41,10 +41,10 @@ namespace sv {
 
     Quaternion() : internal_quaternion_(1,0,0,0) {}
     Quaternion(const boost::math::quaternion<double> &x):internal_quaternion_(x) {}
-    inline Quaternion(const double angle, const cv::Vec3f &axis);
-    inline explicit Quaternion(const cv::Vec3f &euler_angles);
+    inline Quaternion(const double angle, const cv::Vec3d &axis);
+    inline explicit Quaternion(const cv::Vec3d &euler_angles);
     inline explicit Quaternion(const cv::Mat &rotation_matrix);
-    inline static Quaternion FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to);
+    inline static Quaternion FromVectorToVector(const cv::Vec3d &from, const cv::Vec3d to);
     
     
     inline Quaternion Normalize() const ;
@@ -56,9 +56,9 @@ namespace sv {
 
     //(psi,theta,phi)
     inline cv::Mat RotationMatrix() const ;
-    inline cv::Vec3f EulerAngles() const ;
-    inline cv::Vec3f AngleAxis() const ;
-    inline cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
+    inline cv::Vec3d EulerAngles() const ;
+    inline cv::Vec3d AngleAxis() const ;
+    inline cv::Vec3d RotateVector(const cv::Vec3d &to_rotate) const ;
     inline double AngularDistanceToQuaternion(const Quaternion &other);
     
     inline friend std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
@@ -103,15 +103,15 @@ namespace sv {
     return stream;
   }
 
-  Quaternion::Quaternion(const cv::Vec3f &euler_angles){
+  Quaternion::Quaternion(const cv::Vec3d &euler_angles){
 
-    const float half_phi = euler_angles[0]/2;
-    const float half_theta = euler_angles[1]/2;
-    const float half_psi = euler_angles[2]/2;
-    const float q1 = (cos(half_phi)*cos(half_theta)*cos(half_psi)) + (sin(half_phi)*sin(half_theta)*sin(half_psi));
-    const float q2 = (sin(half_phi)*cos(half_theta)*cos(half_psi)) - (cos(half_phi)*sin(half_theta)*sin(half_psi));
-    const float q3 = (cos(half_phi)*sin(half_theta)*cos(half_psi)) + (sin(half_phi)*cos(half_theta)*sin(half_psi));
-    const float q4 = (cos(half_phi)*cos(half_theta)*sin(half_psi)) - (sin(half_phi)*sin(half_theta)*cos(half_psi));
+    const double half_phi = euler_angles[0]/2;
+    const double half_theta = euler_angles[1]/2;
+    const double half_psi = euler_angles[2]/2;
+    const double q1 = (cos(half_phi)*cos(half_theta)*cos(half_psi)) + (sin(half_phi)*sin(half_theta)*sin(half_psi));
+    const double q2 = (sin(half_phi)*cos(half_theta)*cos(half_psi)) - (cos(half_phi)*sin(half_theta)*sin(half_psi));
+    const double q3 = (cos(half_phi)*sin(half_theta)*cos(half_psi)) + (sin(half_phi)*cos(half_theta)*sin(half_psi));
+    const double q4 = (cos(half_phi)*cos(half_theta)*sin(half_psi)) - (sin(half_phi)*sin(half_theta)*cos(half_psi));
     
     internal_quaternion_ = boost::math::quaternion<double>(q1,q2,q3,q4);
   }
@@ -127,21 +127,21 @@ namespace sv {
 
   }
 
-  cv::Vec3f Quaternion::EulerAngles() const {
-    const float phi = (float)atan2( 2*(W()*X() + Y()*Z()), 1-2*(X()*X()+Y()*Y()) );
-    const float theta = (float)asin(2*(W()*Y() - Z()*X()));
-    const float psi = (float)atan2( 2*(W()*Z() + X()*Y()), 1-2*(Y()*Y()+Z()*Z()) );
-    return cv::Vec3f(phi,theta,psi);
-    //return cv::Vec3f(theta,psi,phi)
+  cv::Vec3d Quaternion::EulerAngles() const {
+    const double phi = (double)atan2( 2*(W()*X() + Y()*Z()), 1-2*(X()*X()+Y()*Y()) );
+    const double theta = (double)asin(2*(W()*Y() - Z()*X()));
+    const double psi = (double)atan2( 2*(W()*Z() + X()*Y()), 1-2*(Y()*Y()+Z()*Z()) );
+    return cv::Vec3d(phi,theta,psi);
+    //return cv::Vec3d(theta,psi,phi)
   }
 
-  cv::Vec3f Quaternion::AngleAxis() const {
+  cv::Vec3d Quaternion::AngleAxis() const {
 
-    //const float theta = 2 * acos( W() );
-    const float l2_norm = (float)sqrt( (X()*X()) + (Y()*Y()) + (Z()*Z()) );
-    const float theta = (float)(2 * atan2( (double)l2_norm , W() ));
-    if(theta == 0.0f) return cv::Vec3f(0,0,0);
-    const cv::Vec3f omega( (float)X()/l2_norm, (float)Y()/l2_norm, (float)Z()/l2_norm );
+    //const double theta = 2 * acos( W() );
+    const double l2_norm = (double)sqrt( (X()*X()) + (Y()*Y()) + (Z()*Z()) );
+    const double theta = (double)(2 * atan2( (double)l2_norm , W() ));
+    if(theta == 0.0f) return cv::Vec3d(0,0,0);
+    const cv::Vec3d omega( (double)X()/l2_norm, (double)Y()/l2_norm, (double)Z()/l2_norm );
 
     return theta * omega;
 
@@ -206,25 +206,25 @@ namespace sv {
     return acos( 2*(inner_sq) - 1);
   }
   
-Quaternion::Quaternion(const double angle, const cv::Vec3f &axis){//:internal_quaternion_(angle,axis[0],axis[1],axis[2]) { 
+Quaternion::Quaternion(const double angle, const cv::Vec3d &axis){//:internal_quaternion_(angle,axis[0],axis[1],axis[2]) { 
   double norm = 0;
   for(int i=0;i<3;i++) norm += axis[i]*axis[i];
   norm = std::sqrt(norm);
   if(norm == 0) norm = 0.00001;
-  cv::Vec3f axis_normed;
+  cv::Vec3d axis_normed;
   for(int i=0;i<3;i++) axis_normed = axis[i] / norm;
   const double sin_angle_2 = sin(angle/2);
   internal_quaternion_ = boost::math::quaternion<double>(cos(angle/2),axis[0]*sin_angle_2,axis[1]*sin_angle_2,axis[2]*sin_angle_2);
   *this = Normalize();
 }
 
-Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to){
+Quaternion Quaternion::FromVectorToVector(const cv::Vec3d &from, const cv::Vec3d to){
   
-  cv::Vec3f from_n,to_n;
+  cv::Vec3d from_n,to_n;
   cv::normalize(from,from_n);
   cv::normalize(to,to_n);
     
-  float d = from_n.dot(to_n);
+  double d = from_n.dot(to_n);
   if(d >= 1.0){
     //return identity quaternion
     return boost::math::quaternion<double>(1,0,0,0);
@@ -233,20 +233,20 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
   if(d <= -1.0){
     //for cases when the vectors point in opposite directions
     //see http://irrlicht.sourceforge.net/docu/quaternion_8h_source.html line 658
-    cv::Vec3f ax(1,0,0);
+    cv::Vec3d ax(1,0,0);
     ax = ax.cross(from_n);
     if(ax.dot(ax) == 0){
-      ax = cv::Vec3f(0,1,0);
+      ax = cv::Vec3d(0,1,0);
       ax = ax.cross(from_n);
     }
     Quaternion qr(0,ax);
     return qr.Normalize();
   }
 
-  float s = (float)sqrt( (1+d)*2 );
-  float inv_s = 1.0f/s;
+  double s = (double)sqrt( (1+d)*2 );
+  double inv_s = 1.0f/s;
 
-  cv::Vec3f axis = from_n.cross(to_n);
+  cv::Vec3d axis = from_n.cross(to_n);
   Quaternion q( boost::math::quaternion<double>(s*0.5f, axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
   return q.Normalize();
 
@@ -268,11 +268,11 @@ Quaternion Quaternion::Normalize() const {
                                          internal_quaternion_.R_component_4()/mag);
 }
 
-cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {
+cv::Vec3d Quaternion::RotateVector(const cv::Vec3d &to_rotate) const {
   
-  cv::Vec3f v = to_rotate;
-  cv::Vec3f uv, uuv;
-  cv::Vec3f qvec((float)this->X(),(float)this->Y(),(float)this->Z());
+  cv::Vec3d v = to_rotate;
+  cv::Vec3d uv, uuv;
+  cv::Vec3d qvec((double)this->X(),(double)this->Y(),(double)this->Z());
   uv = qvec.cross(v);
   uuv = qvec.cross(uv);
   uv *= (2.0f * this->W());
@@ -285,7 +285,7 @@ cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {
 
   boost::math::quaternion<double> rotated = (internal_quaternion_ * vec_quat) * boost::math::conj<double>(internal_quaternion_);
 
-  return cv::Vec3f((float)rotated.R_component_2(),(float)rotated.R_component_3(),(float)rotated.R_component_4());
+  return cv::Vec3d((double)rotated.R_component_2(),(double)rotated.R_component_3(),(double)rotated.R_component_4());
   */
 }
 
