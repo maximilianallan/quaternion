@@ -39,7 +39,7 @@ namespace sv {
   
   public:
 
-    Quaternion(){}
+    Quaternion() : internal_quaternion_(1,0,0,0) {}
     Quaternion(const boost::math::quaternion<double> &x):internal_quaternion_(x) {}
     inline Quaternion(const double angle, const cv::Vec3f &axis);
     inline explicit Quaternion(const cv::Vec3f &euler_angles);
@@ -55,6 +55,7 @@ namespace sv {
     inline double W() const;
 
     //(psi,theta,phi)
+    inline cv::Mat RotationMatrix() const ;
     inline cv::Vec3f EulerAngles() const ;
     inline cv::Vec3f AngleAxis() const ;
     inline cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
@@ -74,8 +75,31 @@ namespace sv {
 
   };
 
+ cv::Mat Quaternion::RotationMatrix() const {
+
+   cv::Mat ret(3,3,CV_64FC1);
+
+   ret.at<double>(0,0) = (1 - (2*Y()*Y()) - (2*Z()*Z()));
+   ret.at<double>(0,1) = (2*X()*Y()) - (2*Z()*W());
+   ret.at<double>(0,2) = (2*X()*Z()) + (2*Y()*W()); 
+
+   ret.at<double>(1,0) = (2*X()*Y()) + (2*Z()*W());
+   ret.at<double>(1,1) = 1 - (2*X()*X()) - (2*Z()*Z());
+   ret.at<double>(1,2) = (2*Y()*Z()) - (2*X()*W());
+
+   ret.at<double>(2,0) = (2*X()*Z()) - (2*Y()*W());
+   ret.at<double>(2,1) = (2*Y()*Z()) + (2*X()*W());
+   ret.at<double>(2,2) = 1 - (2*X()*X()) - (2*Y()*Y());
+   
+   return ret;
+
+ }
+
+
+
+
   std::ostream &operator<<(std::ostream &stream, const Quaternion &a){
-    stream << a.W() << " " << a.X() << " " << a.Y() << " " << a.Z();
+    stream << a.W() << ", " << a.X() << ", " << a.Y() << ", " << a.Z();
     return stream;
   }
 
@@ -114,10 +138,10 @@ namespace sv {
   cv::Vec3f Quaternion::AngleAxis() const {
 
     //const float theta = 2 * acos( W() );
-    const float l2_norm = sqrt( (X()*X()) + (Y()*Y()) + (Z()*Z()) );
-    const float theta = 2 * atan2( (double)l2_norm , W() );
+    const float l2_norm = (float)sqrt( (X()*X()) + (Y()*Y()) + (Z()*Z()) );
+    const float theta = (float)(2 * atan2( (double)l2_norm , W() ));
     if(theta == 0.0f) return cv::Vec3f(0,0,0);
-    const cv::Vec3f omega( X()/l2_norm, Y()/l2_norm, Z()/l2_norm );
+    const cv::Vec3f omega( (float)X()/l2_norm, (float)Y()/l2_norm, (float)Z()/l2_norm );
 
     return theta * omega;
 
@@ -182,7 +206,17 @@ namespace sv {
     return acos( 2*(inner_sq) - 1);
   }
   
-Quaternion::Quaternion(const double angle, const cv::Vec3f &axis):internal_quaternion_(angle,axis[0],axis[1],axis[2]){}
+Quaternion::Quaternion(const double angle, const cv::Vec3f &axis){//:internal_quaternion_(angle,axis[0],axis[1],axis[2]) { 
+  double norm = 0;
+  for(int i=0;i<3;i++) norm += axis[i]*axis[i];
+  norm = std::sqrt(norm);
+  if(norm == 0) norm = 0.00001;
+  cv::Vec3f axis_normed;
+  for(int i=0;i<3;i++) axis_normed = axis[i] / norm;
+  const double sin_angle_2 = sin(angle/2);
+  internal_quaternion_ = boost::math::quaternion<double>(cos(angle/2),axis[0]*sin_angle_2,axis[1]*sin_angle_2,axis[2]*sin_angle_2);
+  *this = Normalize();
+}
 
 Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to){
   
@@ -213,7 +247,7 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
   float inv_s = 1.0f/s;
 
   cv::Vec3f axis = from_n.cross(to_n);
-  Quaternion q( s*0.5f, cv::Vec3f(axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
+  Quaternion q( boost::math::quaternion<double>(s*0.5f, axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
   return q.Normalize();
 
 }
@@ -235,13 +269,24 @@ Quaternion Quaternion::Normalize() const {
 }
 
 cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {
-   
+  
+  cv::Vec3f v = to_rotate;
+  cv::Vec3f uv, uuv;
+  cv::Vec3f qvec((float)this->X(),(float)this->Y(),(float)this->Z());
+  uv = qvec.cross(v);
+  uuv = qvec.cross(uv);
+  uv *= (2.0f * this->W());
+  uuv *= 2.0f;
+
+  return v + uv + uuv;
+
+  /*
   const boost::math::quaternion<double> vec_quat(0,to_rotate[0],to_rotate[1],to_rotate[2]);
 
   boost::math::quaternion<double> rotated = (internal_quaternion_ * vec_quat) * boost::math::conj<double>(internal_quaternion_);
 
   return cv::Vec3f((float)rotated.R_component_2(),(float)rotated.R_component_3(),(float)rotated.R_component_4());
-
+  */
 }
 
   double Quaternion::X() const {
