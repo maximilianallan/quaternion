@@ -31,7 +31,9 @@ either expressed or implied, of the FreeBSD Project.
 
 using namespace math;
 
-Quaternion::Quaternion() : w_(0), x_(0), y_(0), z_(0) { }
+Quaternion::Quaternion() : w_(1), x_(0), y_(0), z_(0) { }
+
+Quaternion::Quaternion(const double w, const double x, const double y, const double z) : w_(w), x_(x), y_(y), z_(z) { }
 
 std::ostream &operator<<(std::ostream &stream, const Quaternion &a){
   
@@ -59,7 +61,7 @@ Quaternion::Quaternion(const cv::Mat &rotation_matrix) {
   
   if(rotation_matrix.type() == CV_64FC1) InitFromMatrix<double>(rotation_matrix);
   else if(rotation_matrix.type() == CV_32FC1) InitFromMatrix<float>(rotation_matrix);
-  else throw std::runtimer_error("");
+  else throw std::runtime_error("");
           
 }
 
@@ -104,6 +106,48 @@ cv::Mat Quaternion::RotationMatrix() const {
 }
 
 
+Quaternion Quaternion::operator-(const Quaternion &rhs) {
+
+  return Quaternion(W() - rhs.W(), X() - rhs.X(), Y() - rhs.Y(), Z() - rhs.Z());
+  
+}
+
+bool Quaternion::operator==(const Quaternion &rhs){
+
+  if (fabs(X() - rhs.X()) > eps) return false;
+  if (fabs(Y() - rhs.Y()) > eps) return false;
+  if (fabs(Z() - rhs.Z()) > eps) return false;
+  if (fabs(W() - rhs.W()) > eps) return false;
+  return true;
+
+}
+
+bool Quaternion::operator!=(const Quaternion &rhs){
+  return !(*this == rhs);
+}
+
+
+Quaternion Quaternion::operator+(const Quaternion &rhs) {
+
+  return Quaternion(W() + rhs.W(), X() + rhs.X(), Y() + rhs.Y(), Z() + rhs.Z());
+
+}
+
+
+Quaternion Quaternion::operator*(const Quaternion &rhs) {
+
+  Quaternion q;
+
+  q.w_ = rhs.W()*W() - rhs.X()*X() - rhs.Y()*Y() - rhs.Z()*Z();
+  q.x_ = rhs.W()*X() + rhs.X()*W() + rhs.Y()*Z() - rhs.Z()*Y();
+  q.y_ = rhs.W()*Y() + rhs.Y()*W() + rhs.Z()*X() - rhs.X()*Z();
+  q.z_ = rhs.W()*Z() + rhs.Z()*W() + rhs.X()*Y() - rhs.Y()*X();
+
+  return q;
+
+}
+
+
 Quaternion Quaternion::Inverse() const {
 
   const double norm = W()*W() + X()*X() + Y()*Y() + Z()*Z();
@@ -130,8 +174,7 @@ Quaternion::Quaternion(const double angle, const cv::Vec3d &axis){
   cv::Vec3d axis_normed;
   for (int i = 0; i<3; i++) axis_normed = axis[i] / norm;
   const double sin_angle_2 = sin(angle / 2);
-  internal_quaternion_ = Quaternion(cos(angle / 2), axis[0] * sin_angle_2, axis[1] * sin_angle_2, axis[2] * sin_angle_2);
-  *this = Normalize();
+  *this = Quaternion(cos(angle / 2), axis[0] * sin_angle_2, axis[1] * sin_angle_2, axis[2] * sin_angle_2).Normalize();
   
 }
 

@@ -31,18 +31,19 @@ either expressed or implied, of the FreeBSD Project.
 #define __QUATERNION_HPP__
 
 #include <cmath>
-#include <ofstream>
+#include <iostream>
 #include <cv.h>
 
 namespace math {
 
-  const static bool EPS = 1e-9;
+  const static double eps = 1e-9;
   
   class Quaternion {
     
   public:
     
     Quaternion();
+    Quaternion(const double w, const double x, const double y, const double z);
     Quaternion(const double angle, const cv::Vec3d &axis);
     explicit Quaternion(const cv::Vec3d &euler_angles);
     explicit Quaternion(const cv::Mat &rotation_matrix);
@@ -62,12 +63,12 @@ namespace math {
     inline cv::Vec3d RotateVector(const cv::Vec3d &to_rotate) const ;
     inline double AngularDistanceToQuaternion(const Quaternion &other);
     
-    inline friend std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
-    friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
-    friend Quaternion operator+(const Quaternion &a, const Quaternion &b);
-    friend Quaternion operator-(const Quaternion &a, const Quaternion &b);
-    friend bool operator==(const Quaternion &a, const Quaternion &b);
-    friend bool operator!=(const Quaternion &a, const Quaternion &b);
+    friend inline std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
+    Quaternion operator*(const Quaternion &rhs);
+    Quaternion operator+(const Quaternion &rhs);
+    Quaternion operator-(const Quaternion &rhs);
+    bool operator==(const Quaternion &rhs);
+    bool operator!=(const Quaternion &rhs);
     
   protected:
 
@@ -82,76 +83,16 @@ namespace math {
   };
   
   template<typename T>
-  void Quaternion::InitFromMatrix(const cv::Mat &matrix){
+  void Quaternion::InitFromMatrix(const cv::Mat &rotation_matrix){
     
-    w_ = sqrt(1.0 + rotation_matrix.at<T>(0, 0) + rotation_matrix.at<T>(1, 1) + rotation_matrix.at<double>(2, 2)) / 2.0;
+    w_ = sqrt(1.0 + rotation_matrix.at<T>(0, 0) + rotation_matrix.at<T>(1, 1) + rotation_matrix.at<T>(2, 2)) / 2.0;
     const double w4 = 4.0*w_;
     x_ = (rotation_matrix.at<T>(2, 1) - rotation_matrix.at<T>(1, 2)) / w4;
     y_ = (rotation_matrix.at<T>(0, 2) - rotation_matrix.at<T>(2, 0)) / w4;
     z_ = (rotation_matrix.at<T>(1, 0) - rotation_matrix.at<T>(0, 1)) / w4;
 
   }
-
-  Quaternion operator-(const Quaternion &a, const Quaternion &b) {
-    
-    Quaternion q;
-    
-    q.w_ = a.W() - b.W();
-    q.x_ = a.X() - b.X();
-    q.y_ = a.Y() - b.Y();
-    q.z_ = a.Z() - b.Z();
-   
-    return q;
-
-  }
-
-  bool operator==(const Quaternion &a, const Quaternion &b){
-
-    if(fabs(a.X() - b.X()) > eps) return false;
-    if(fabs(a.Y() - b.Y()) > eps) return false;
-    if(fabs(a.Z() - b.Z()) > eps) return false;
-    if(fabs(a.W() - b.W()) > eps) return false;
-    return true;
-
-  }
-
-  bool operator!=(const Quaternion &a, const Quaternion &b){
-    return !(a == b);
-  }
-
-
-  Quaternion operator+(const Quaternion &a, const Quaternion &b) {
-
-    Quaternion q;
-
-    q.w_ = a.W() + b.W();
-    q.x_ = a.X() + b.X();
-    q.y_ = a.Y() + b.Y();
-    q.z_ = a.Z() + b.Z();
-   
-    return q;
-
-  }
-
-
-  Quaternion operator*(const Quaternion &a, const Quaternion &b) {
-
-    Quaternion q;
-   
-    q.w_ = b.W()*a.W() - b.X()*a.X() - b.y()*a.Y() - b.Z()*a.Z();
-    q.x_ = b.W()*a.X() + b.X()*a.W() + b.Y()*a.Z() - b.Z()*a.Y();
-    q.y_ = b.W()*a.Y() + b.Y()*a.W() + b.Z()*a.X() - b.X()*a.Z();
-    q.z_ = b.W()*a.Z() + b.Z()*a.W() + b.X()*a.Y() - b.y()*a.X();
-
-    return q;
-  }
-
-
-
-
-
-
-  
+ 
 }
 
 #endif
