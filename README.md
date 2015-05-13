@@ -10,7 +10,7 @@ Please note, this has not been extensively tested so may contain some/many bugs.
 Dependencies
 ------------
 
-I always use Boost and OpenCV in my projects so I used them in this class as well. It should be quite simple to remove these dependencies and I may do so in the future.
+I always use OpenCV in my projects so I used it in this class as well. It should be quite simple to remove these dependencies and I may do so in the future.
 
 Licence
 -------
